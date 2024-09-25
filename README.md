@@ -3,7 +3,7 @@
 
 This document provides a step-by-step guide to set up a CI/CD pipeline using various tools such as Jenkins, Docker, SonarQube, Kubernetes (EKS), Prometheus, Grafana, and ArgoCD.
 
-  ![flow chart](Flow_Chart.png)
+![](Images/Flow_Chart.png)
 
 ## Steps
 
@@ -56,7 +56,7 @@ This document provides a step-by-step guide to set up a CI/CD pipeline using var
 3. **Cluster Access**: Used `kubectl` and `kubeconfig` to access the cluster.
 
 ### 7. Prometheus and Grafana Installation
-  ![Alt text](grafana.jpg)
+ ![](Images/grafana.jpg)
 1. **Installation**:
    - Installed Prometheus and Grafana using Helm and `kubectl`.
 2. **Service Type Change**:
@@ -67,7 +67,7 @@ This document provides a step-by-step guide to set up a CI/CD pipeline using var
    - Created dashboards in Grafana using Prometheus as the data source.
 
 ### 8. ArgoCD Installation and Configuration
-  ![Alt text](ArgoCD.png)
+![](Images/ArgoCD.png)
 
 1. **ArgoCD Installation**: Installed ArgoCD in the cluster using `kubectl`.
 2. **Service Patch**: Patched the ArgoCD service to use `LoadBalancer`.
@@ -229,4 +229,4 @@ kubectl get svc argocd-server -n argocd
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d ; echo
 ```
 
-![Alt text](netflix_app.jpg)
+![](Images/netflix_app.jpg)
