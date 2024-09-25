@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: netflix-app
-        image: krupaawsdocker/netflix-clone:39
+        image: krupaawsdocker/netflix_clone:39
         ports:
         - containerPort: 3000
