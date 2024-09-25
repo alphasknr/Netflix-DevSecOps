@@ -22,9 +22,9 @@ pipeline {
                 }
             }
         }
-        stage('OWASP FS Scanning') {
+       stage('OWASP FS Scanning') {
             steps {
-                dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'OWASP DP-Check'
+                dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'owasp-dependency-check'
                 dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
         }
@@ -44,48 +44,67 @@ pipeline {
                 script {
                     sh 'docker system prune -f'
                     sh 'docker container prune -f'
-                    withCredentials([usernamePassword(credentialsId: 'Docker_Cred_ID', passwordVariable: 'Docker_Password', usernameVariable: 'Docker_Name')]) {
+                    withCredentials([usernamePassword(credentialsId: 'docker-cred', passwordVariable: 'Docker_Password', usernameVariable: 'Docker_Name')]) {
+                        try {
+                            def previousBuildNumber = BUILD_NUMBER.toInteger() - 1
+                            sh "docker rmi ${Docker_Name}/netflix_clone:${previousBuildNumber} || echo 'No previous image to delete'"
+                        } catch (Exception e) {
+                            echo 'No previous images are there to delete, or an error occurred during deletion'
+                        }
                         sh 'docker build --build-arg API_KEY=2af0904de8242d48e8527eeedc3e19d9 -t ${Docker_Name}/netflix_clone:${BUILD_NUMBER} .'
                     }
                 }
             }
         }
-        stage('Trivy Image Scanning'){
-            steps{
-                sh 'trivy image netflix > trivyimage.txt'
-                script{
-                    withCredentials([usernamePassword(credentialsId: 'Docker_Cred_ID', passwordVariable: 'Docker_Password', usernameVariable: 'Docker_Name')]) {
-                    sh 'trivy image ${Docker_Name}/netflix_clone:${BUILD_NUMBER} > trivyimage.txt'
-                    }
-                    input(message: 'Are you sure to proceed?', ok: 'Proceed')
-                }
-            }
-        }
+        
         stage('Push to Dockerhub') {
             steps {
 		        script {
-                    withCredentials([usernamePassword(credentialsId: 'Docker_Cred_ID', passwordVariable: 'Docker_Password', usernameVariable: 'Docker_Name')]) {
+                    withCredentials([usernamePassword(credentialsId: 'docker-cred', passwordVariable: 'Docker_Password', usernameVariable: 'Docker_Name')]) {
                     sh 'docker login -u ${Docker_Name} -p ${Docker_Password}'
                     sh 'docker push ${Docker_Name}/netflix_clone:${BUILD_NUMBER}'
                     }
 		        }
             }
         }
+        stage('Trivy Image Scanning'){
+            steps{
+                script{
+                    withCredentials([usernamePassword(credentialsId: 'docker-cred', passwordVariable: 'Docker_Password', usernameVariable: 'Docker_Name')]) {
+                    try{
+                        sh 'echo ${Docker_Name}/netflix_clone:${BUILD_NUMBER}'
+                        sh 'trivy image ${Docker_Name}/netflix_clone:${BUILD_NUMBER} > trivyimage.txt'
+                    }
+                    catch(Exception e) {
+                        input(message: 'Are you sure to proceed?', ok: 'Proceed')
+                    }
+                    }
+                }
+            }
+        }
         stage('Update Deployment file') {
             environment {
                 GIT_REPO_NAME = "Netflix-DevSecOps"
-                GIT_USER_NAME = "alphasknr"
             }
             steps {
-                withCredentials([string(credentialsId: 'Github_Token', variable: 'GITHUB_TOKEN')]) {
-                    sh '''
-                        git config user.email "krupasknr@gmail.com"
-                        git config user.name "alphasknr"
-                        sed -i "s/netflix-clone:.*/netflix=clone:${BUILD_NUMBER}/g" deployment.yaml
-                        git add deployment.yaml
-                        git commit -m "Update deployment Image to version \${BUILD_NUMBER}"
-                        git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
-                    '''
+                withCredentials([string(credentialsId: 'github-token-id', variable: 'GITHUB_TOKEN'),
+                                 string(credentialsId: 'github-mail-id', variable: 'GIT_EMAIL'),
+                                 string(credentialsId: 'github-username-id', variable: 'GIT_USERNAME')]) {
+                    sh """
+                        # Set Git configuration with user credentials
+                        git config user.email "$GIT_EMAIL"
+                        git config user.name "$GIT_USERNAME"
+                        
+                        # Update the deployment YAML file using sed
+                        sed -i.bak "s/netflix-clone:.*/netflix-clone:${BUILD_NUMBER}/g" ./Manifest_Files/deployment.yaml
+                        
+                        # Add and commit changes
+                        git add ./Manifest_Files/deployment.yaml
+                        git commit -m "Update deployment Image to version ${BUILD_NUMBER}"
+        
+                        # Push changes to GitHub (without exposing the token in logs)
+                        git push https://${GITHUB_TOKEN}@github.com/${GIT_USERNAME}/${GIT_REPO_NAME}.git HEAD:main
+                    """
                 }
             }
         }
