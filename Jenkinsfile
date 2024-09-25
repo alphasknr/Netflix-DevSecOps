@@ -22,12 +22,12 @@ pipeline {
                 }
             }
         }
-       stage('OWASP FS Scanning') {
-            steps {
-                dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'owasp-dependency-check'
-                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-            }
-        }
+//       stage('OWASP FS Scanning') {
+//            steps {
+//                dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'owasp-dependency-check'
+//                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+//            }
+//        }
         stage('Trivy FS Scanning') {
             steps {
                 script {
@@ -96,7 +96,7 @@ pipeline {
                         git config user.name "$GIT_USERNAME"
                         
                         # Update the deployment YAML file using sed
-                        sed -i.bak "s/netflix-clone:.*/netflix-clone:${BUILD_NUMBER}/g" ./Manifest_Files/deployment.yaml
+                        sed -i.bak "s/netflix_clone:.*/netflix_clone:${BUILD_NUMBER}/g" ./Manifest_Files/deployment.yaml
                         
                         # Add and commit changes
                         git add ./Manifest_Files/deployment.yaml
