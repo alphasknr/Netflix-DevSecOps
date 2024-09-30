@@ -152,6 +152,14 @@ unzip awscliv2.zip
 sudo ./aws/install
 ```
 
+## EKSCtl Installation
+
+```bash
+curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
+tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm eksctl_$PLATFORM.tar.gz
+sudo mv /tmp/eksctl /usr/local/bin
+```
+
 ## AWS Configuration
 
 ```bash
